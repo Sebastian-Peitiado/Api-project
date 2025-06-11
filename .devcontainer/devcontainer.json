@@ -1,0 +1,42 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the
+// README at: https://github.com/devcontainers/templates/tree/main/src/ruby
+{
+	"name": "Python",
+	//"image": "apifaq-dev:2",
+	"dockerComposeFile": [
+		"docker-compose.yaml"
+	],
+	"service": "my-workspace",
+	"forwardPorts": [
+		4567
+	],
+	"workspaceFolder": "/workspace",
+	"mounts": [
+		"source=${localWorkspaceFolder},target=/workspace,type=bind"
+	],
+	"postCreateCommand": "poetry install",
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"ms-python.python",
+				"ms-python.debugpy",
+				"ms-toolsai.jupyter",
+				"tamasfe.even-better-toml",
+				"ms-python.black-formatter",
+				"ms-python.vscode-pylance",
+				"usernamehw.errorlens"
+			],
+			"settings": {
+			"editor.defaultFormatter": "ms-python.black-formatter",
+			"[python]": {
+			"editor.codeActionsOnSave": {
+				"source.fixAll": "explicit"
+				}
+			},
+			"black-formatter.importStrategy": "useBundled",
+			"black-formatter.path": ["/usr/local/bin/black"],
+			"python.defaultInterpreterPath": "/usr/local/bin/python"
+			}
+		}
+	}
+}

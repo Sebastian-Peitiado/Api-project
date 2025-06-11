@@ -1,0 +1,36 @@
+
+services:
+  my-workspace:
+    build:
+      context: ../
+      dockerfile: Dockerfile.dev
+    command: "/bin/bash"
+    stdin_open: true
+    tty: true
+    container_name: api-project
+    ports:
+      - "8080:8080"
+    volumes:
+      - .:/workspace
+    env_file:
+      - /home/sebas/projectos/api_project/.env
+    environment:
+      API_TITLE: API-PROJECT
+      API_DESCRIPTION: ''
+      API_CONTACT: 'SEBAS'
+
+  mongo:
+    image: mongo:latest
+    container_name: mongo-api-project
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password123
+      MONGO_INITDB_DATABASE: people
+    volumes:
+      - mongo:/data/db
+    ports:
+      - "27020:27017"
+
+volumes:
+  mongo:
+  my-workspace:
