@@ -13,7 +13,7 @@ def crear_usuario_prueba():
     result = collection.insert_one({"name": "Juan", "lastName": "Pérez"})
     return str(result.inserted_id)
 
-# Helper: borra un usuario por ID
+
 def eliminar_usuario_prueba(usuario_id):
     collection = get_usuarios_collection()
     collection.delete_one({"_id": ObjectId(usuario_id)})

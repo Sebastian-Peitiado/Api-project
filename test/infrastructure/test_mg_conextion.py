@@ -4,7 +4,7 @@ from pymongo import MongoClient
 from pymongo.errors import ConnectionFailure
 import pytest
 
-from infrastructure.database_conextion import get_mongo_client, get_usuarios_collection, insert_user_in_collection
+from infrastructure.database_conextion import get_mongo_client, insert_user_in_collection
 from main import Usuario
 
 

@@ -1,5 +1,4 @@
 from pydantic import ValidationError
-import main
 from main import Usuario
 import pytest
 
