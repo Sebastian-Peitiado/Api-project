@@ -1,3 +1,4 @@
+import re
 from typing import Optional
 from fastapi import Depends, FastAPI, HTTPException, Path
 from pymongo.collection import Collection
@@ -5,8 +6,8 @@ from pydantic import BaseModel, field_validator
 from bson import ObjectId
 from infrastructure.database_conextion import get_usuarios_collection, insert_user_in_collection
 
-
-
+REGEX_SOLO_LETRAS = r"^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$"
+ALERT = "No se permiten caracteres especiales ni números en nombre o apellido"
 
 class Usuario(BaseModel):
     name : str
@@ -17,6 +18,12 @@ class Usuario(BaseModel):
         if not v or v.strip() == "":
             raise ValueError("El nombre no puede estar vacío")
         return v.strip()
+    
+    @field_validator("lastName")
+    def apellido_no_vacio(cls, v):
+        if not v or v.strip() == "":
+            raise ValueError("El apellido no puede estar vacío")
+        return v.strip()
 
     @field_validator("name", "lastName")
     def no_numeros(cls, v):
@@ -24,11 +31,14 @@ class Usuario(BaseModel):
             raise ValueError("No se aceptan numeros en los campos de nombre y apellido")
         return v
 
-    @field_validator("lastName")
-    def apellido_no_vacio(cls, v):
-        if not v or v.strip() == "":
-            raise ValueError("El apellido no puede estar vacío")
-        return v.strip()
+    @field_validator("name", "lastName")
+    @classmethod
+    def no_caracteres(cls,v):
+        if not re.match(REGEX_SOLO_LETRAS, v):
+            raise ValueError(ALERT)
+        return v
+
+   
 
 
 class UsuarioResponse(Usuario):
@@ -74,15 +84,7 @@ async def modificar_usuario(
     if datos.name is not None:
         if datos.name.strip() == "":
             raise HTTPException(status_code=400, detail="El nombre no puede estar vacío")
-        nuevos_datos["name"] = datos.name.strip()
-
-    if datos.lastName is not None:
-        if datos.lastName.strip() == "":
-            raise HTTPException(status_code=400, detail="El apellido no puede estar vacío")
-        nuevos_datos["lastName"] = datos.lastName.strip()
-
-    if not nuevos_datos:
-        raise HTTPException(status_code=400, detail="No se proporcionaron datos válidos para actualizar")
+        nuevos_datos["name"] = datos.name.strip()   
 
     result = collection.update_one(
         {"_id": ObjectId(usuario_id)},
