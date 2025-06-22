@@ -7,16 +7,9 @@ import os
 
 os.environ["DB_NAME"] = os.getenv("DB_TEST_NAME", "test_db")
 
-
-def crear_usuario_prueba():
-    collection = get_usuarios_collection()
-    result = collection.insert_one({"name": "Juan", "lastName": "Pérez"})
-    return str(result.inserted_id)
-
-
-def eliminar_usuario_prueba(usuario_id):
-    collection = get_usuarios_collection()
-    collection.delete_one({"_id": ObjectId(usuario_id)})
+def crear_usuario():
+    col = get_usuarios_collection()
+    return str(col.insert_one({"name": "Juan", "lastName": "Pérez"}).inserted_id)
 
 
 client = TestClient(app)
@@ -51,18 +44,27 @@ def test_campos_faltantes():
     response = client.post("/Usuarios", json={})
     assert response.status_code == 422
 
-def test_id_invalido():
-    user = client.put("/modificar_usuario")
-# def test_actualizacion_exitosa():
-#     usuario_id = crear_usuario_prueba()
-#     response = client.put(f"/Usuarios/{usuario_id}", json={
-#         "name": "Carlos",
-#         "lastName": "Gómez"
-#     })
-#     assert response.status_code == 200
-#     data = response.json()
-#     assert data["id"] == usuario_id
-#     assert data["name"] == "Carlos"
-#     assert data["lastName"] == "Gómez"
-#     eliminar_usuario_prueba(usuario_id)
+def test_actualizacion_exitosa():
+    user = crear_usuario()
+    response = client.put(f"/modificar_usuarios/{user}", json={"name":"jorge","lastName":"peitiado"})
+    assert response.status_code == 200
+    data = response.json()
+    assert data["name"] == "jorge"
+    assert data["lastName"] == "peitiado"
 
+def test_id_con_formato_incorrecto():
+    response = client.put(f"/modificar_usuarios/3425", json={"name":"jorge","lastName":"peitiado"})
+    assert response.status_code == 400
+    assert response.json()["detail"] == "ID invalido"
+
+def test_sin_aportar_datos():
+    user = crear_usuario()
+    response = client.put(f"/modificar_usuarios/{user}", json={})
+    assert response.status_code == 400
+    assert response.json()["detail"] == "No se proporcionaron datos válidos para actualizar"
+
+def test_id_inexistente():
+    id_inexistente = str(ObjectId())
+    response = client.put(f"/modificar_usuarios/{id_inexistente}", json={"name":"jorge","lastName":"peitiado"})
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Usuario no encontrado"

@@ -32,7 +32,6 @@ class Usuario(BaseModel):
         return v
 
     @field_validator("name", "lastName")
-    @classmethod
     def no_caracteres(cls,v):
         if not re.match(REGEX_SOLO_LETRAS, v):
             raise ValueError(ALERT)
@@ -48,8 +47,60 @@ class UsuarioUpdate(BaseModel):
     name: Optional[str] = None
     lastName: Optional[str] = None
 
+    @field_validator("name", "lastName")
+    def sin_campos_vacios(cls, v):
+        if not v or v.strip() == "":
+            raise ValueError("El apellido y el nombre no puede estar vacío")
+        return v.strip()
+
+    @field_validator("name", "lastName")
+    def no_numeros(cls, v):
+        if any(char.isdigit() for char in v):
+            raise ValueError("No se aceptan numeros en los campos de nombre y apellido")
+        return v
+
+    @field_validator("name", "lastName")
+    def no_caracteres(cls,v):
+        if not re.match(REGEX_SOLO_LETRAS, v):
+            raise ValueError(ALERT)
+        return v
 
 
+def modificar_usuario_en_db(usuario_id: str, datos: UsuarioUpdate, collection: Collection) -> UsuarioResponse:
+    if not ObjectId.is_valid(usuario_id):
+        raise HTTPException(status_code=400, detail="ID invalido")
+
+    usuario_existente = collection.find_one({"_id": ObjectId(usuario_id)})
+
+    if not usuario_existente:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    nuevos_datos = {}
+    if datos.name is not None:
+        nuevos_datos["name"] = datos.name.strip()
+
+    if datos.lastName is not None:
+        nuevos_datos["lastName"] = datos.lastName.strip()
+
+    if not nuevos_datos:
+        raise HTTPException(status_code=400, detail="No se proporcionaron datos válidos para actualizar")
+
+    result = collection.update_one(
+        {"_id": ObjectId(usuario_id)},
+        {"$set": nuevos_datos}
+    )
+
+    # if result.modified_count == 0:
+    #     raise HTTPException(status_code=304, detail="No se realizaron cambios")
+
+    usuario_actualizado = collection.find_one({"_id": ObjectId(usuario_id)})
+
+    return UsuarioResponse(
+        id=str(usuario_actualizado["_id"]),
+        name=usuario_actualizado["name"],
+        lastName=usuario_actualizado["lastName"]
+    )
+   
 
 app = FastAPI()
 @app.get("/health")
@@ -72,32 +123,4 @@ async def modificar_usuario(
     datos: UsuarioUpdate = ...,
     collection: Collection = Depends(get_usuarios_collection)
 ): 
-    if not ObjectId.is_valid(usuario_id):
-        raise HTTPException(status_code=400, detail="ID inválido")
-
-    usuario_existente = collection.find_one({"_id": ObjectId(usuario_id)})
-
-    if not usuario_existente:
-        raise HTTPException(status_code=404, detail="Usuario no encontrado")
-
-    nuevos_datos = {}
-    if datos.name is not None:
-        if datos.name.strip() == "":
-            raise HTTPException(status_code=400, detail="El nombre no puede estar vacío")
-        nuevos_datos["name"] = datos.name.strip()   
-
-    result = collection.update_one(
-        {"_id": ObjectId(usuario_id)},
-        {"$set": nuevos_datos}
-    )
-
-    if result.modified_count == 0:
-        raise HTTPException(status_code=304, detail="No se realizaron cambios")
-
-    usuario_actualizado = collection.find_one({"_id": ObjectId(usuario_id)})
-
-    return UsuarioResponse(
-        id=str(usuario_actualizado["_id"]),
-        name=usuario_actualizado["name"],
-        lastName=usuario_actualizado["lastName"]
-    )
+    return modificar_usuario_en_db(usuario_id, datos, collection)
