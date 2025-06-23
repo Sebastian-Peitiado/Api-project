@@ -68,3 +68,17 @@ def test_id_inexistente():
     response = client.put(f"/modificar_usuarios/{id_inexistente}", json={"name":"jorge","lastName":"peitiado"})
     assert response.status_code == 404
     assert response.json()["detail"] == "Usuario no encontrado"
+
+def test_eliminacion_usuario():
+    user = crear_usuario()
+    response = client.delete(f"/eliminacion_usuario/{user}")
+    assert response.status_code == 200
+    collection = get_usuarios_collection()
+    usuario = collection.find_one({"_id":ObjectId(user)})
+    assert usuario is None
+
+def test_eliminacion_usuario_id_erroneo():
+    user = str(ObjectId)
+    response = client.delete(f"/eliminacion_usuario/{user}")
+    assert response.status_code == 404
+    assert response.json()["detail"] == "ID invalido"

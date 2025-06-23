@@ -64,6 +64,10 @@ class UsuarioUpdate(BaseModel):
         if not re.match(REGEX_SOLO_LETRAS, v):
             raise ValueError(ALERT)
         return v
+    
+
+class EliminacionResponse(BaseModel):
+    message: str
 
 
 def modificar_usuario_en_db(usuario_id: str, datos: UsuarioUpdate, collection: Collection) -> UsuarioResponse:
@@ -90,8 +94,7 @@ def modificar_usuario_en_db(usuario_id: str, datos: UsuarioUpdate, collection: C
         {"$set": nuevos_datos}
     )
 
-    # if result.modified_count == 0:
-    #     raise HTTPException(status_code=304, detail="No se realizaron cambios")
+    
 
     usuario_actualizado = collection.find_one({"_id": ObjectId(usuario_id)})
 
@@ -101,6 +104,15 @@ def modificar_usuario_en_db(usuario_id: str, datos: UsuarioUpdate, collection: C
         lastName=usuario_actualizado["lastName"]
     )
    
+
+def eliminacion_usuario(usuario_id : str, collection : Collection):
+    if not ObjectId.is_valid(usuario_id):
+        raise HTTPException(status_code=404, detail="ID invalido")
+
+    resultado = collection.delete_one({"_id": ObjectId(usuario_id)})
+    
+    return {"message": "Usuario eliminado exitosamente"}
+
 
 app = FastAPI()
 @app.get("/health")
@@ -124,3 +136,10 @@ async def modificar_usuario(
     collection: Collection = Depends(get_usuarios_collection)
 ): 
     return modificar_usuario_en_db(usuario_id, datos, collection)
+
+@app.delete("/eliminacion_usuario/{usuario_id}",response_model=EliminacionResponse)
+async def elimininar_usuario(
+    usuario_id: str = Path(..., description="ID del usuario a eliminar"),
+    collection: Collection = Depends(get_usuarios_collection)
+):
+    return eliminacion_usuario(usuario_id, collection)
